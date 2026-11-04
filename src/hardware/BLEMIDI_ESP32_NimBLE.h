@@ -120,13 +120,13 @@ protected:
     BLEMIDI_ESP32_NimBLE<_Settings> *_bluetoothEsp32 = nullptr;
 
 #ifdef NIMBLE_2_X
-    uint8_t onWrite(BLECharacteristic *characteristic, NimBLEAttValue& value, NimBLEConnInfo& connInfo) override
+    void onWrite(BLECharacteristic *characteristic, NimBLEConnInfo& connInfo) override
     {
+        NimBLEAttValue value = characteristic->getValue();
         if (value.size() > 0)
         {
             _bluetoothEsp32->receive((uint8_t *)value.data(), value.size());
         }
-        return 0; // success
     }
 #else
     void onWrite(BLECharacteristic *characteristic)

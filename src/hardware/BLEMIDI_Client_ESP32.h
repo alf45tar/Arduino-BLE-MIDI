@@ -177,7 +177,7 @@ protected:
         }
 
         DEBUGCLIENT("Found MIDI Service");
-        if (!(!specificTarget || (advertisedDevice->getName() == nameTarget.c_str() || advertisedDevice->getAddress() == nameTarget)))
+        if (!(!specificTarget || (advertisedDevice->getName() == nameTarget.c_str() || advertisedDevice->getAddress().toString() == nameTarget)))
         {
             DEBUGCLIENT("Name error");
             return;
@@ -211,7 +211,7 @@ private:
     bool firstTimeSend = true; //First writeValue get sends like Write with reponse for clean security flags. After first time, all messages are send like WriteNoResponse for increase transmision speed.
     char connectedDeviceName[24];
     
-    BLEMIDI_Transport<class BLEMIDI_Client_ESP32> *_bleMidiTransport = nullptr;
+    BLEMIDI_Transport<class BLEMIDI_Client_ESP32<_Settings>, _Settings> *_bleMidiTransport = nullptr;
 
     bool specificTarget = false;
 
