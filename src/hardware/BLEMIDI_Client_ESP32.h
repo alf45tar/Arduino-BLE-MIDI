@@ -11,6 +11,10 @@
 // Headers for ESP32 nimBLE
 #include <NimBLEDevice.h>
 
+#if defined(NIMBLE_CPP_VERSION_MAJOR) && NIMBLE_CPP_VERSION_MAJOR >= 2
+#define NIMBLE_2_X 1
+#endif
+
 BEGIN_BLEMIDI_NAMESPACE
 
 using PasskeyRequestCallback = uint32_t (*)(void);
@@ -138,7 +142,11 @@ struct DefaultSettingsClient : public BLEMIDI_NAMESPACE::DefaultSettings
 };
 
 /** Define a class to handle the callbacks when advertisments are received */
+#ifdef NIMBLE_2_X
+class AdvertisedDeviceCallbacks : public NimBLEScanCallbacks
+#else
 class AdvertisedDeviceCallbacks : public NimBLEAdvertisedDeviceCallbacks
+#endif
 {
 public:
     NimBLEAdvertisedDevice advDevice;
@@ -149,7 +157,11 @@ public:
     std::string nameTarget;
 
 protected:
+#ifdef NIMBLE_2_X
+    void onResult(const NimBLEAdvertisedDevice *advertisedDevice)
+#else
     void onResult(NimBLEAdvertisedDevice *advertisedDevice)
+#endif
     {
         if (!enableConnection) // not begin() or end()
         {
@@ -183,7 +195,9 @@ protected:
 };
 
 /** Define a funtion to handle the callbacks when scan ends */
+#ifndef NIMBLE_2_X
 void scanEndedCB(NimBLEScanResults results);
+#endif
 
 /** Define the class that performs Client Midi (nimBLE) */
 template <class _Settings>
@@ -332,7 +346,11 @@ protected:
         }
 
         // Try reconnection or search a new one
+#ifdef NIMBLE_2_X
+        NimBLEDevice::getScan()->start(1000, false);
+#else
         NimBLEDevice::getScan()->start(1, scanEndedCB);
+#endif
     }
 
     bool onConnParamsUpdateRequest(NimBLEClient *pClient, const ble_gap_upd_params *params)
@@ -455,13 +473,21 @@ void BLEMIDI_Client_ESP32<_Settings>::scan()
     NimBLEScan *pBLEScan = BLEDevice::getScan();
     if (!pBLEScan->isScanning())
     {
+#ifdef NIMBLE_2_X
+        pBLEScan->setScanCallbacks(&myAdvCB);
+#else
         pBLEScan->setAdvertisedDeviceCallbacks(&myAdvCB);
+#endif
         pBLEScan->setInterval(600);
         pBLEScan->setWindow(500);
         pBLEScan->setActiveScan(true);
 
         DEBUGCLIENT("Scanning...");
+#ifdef NIMBLE_2_X
+        pBLEScan->start(1000, false);
+#else
         pBLEScan->start(1, scanEndedCB);
+#endif
     }
 };
 
@@ -506,7 +532,11 @@ bool BLEMIDI_Client_ESP32<_Settings>::connect()
         }
     }
 
+#ifdef NIMBLE_2_X
+    if (NimBLEDevice::getCreatedClientCount() >= NIMBLE_MAX_CONNECTIONS)
+#else
     if (NimBLEDevice::getClientListSize() >= NIMBLE_MAX_CONNECTIONS)
+#endif
     {
         DEBUGCLIENT("Max clients reached - no more connections available");
         return false;
@@ -572,10 +602,12 @@ bool BLEMIDI_Client_ESP32<_Settings>::connect()
 };
 
 /** Callback to process the results of the last scan or restart it */
+#ifndef NIMBLE_2_X
 void scanEndedCB(NimBLEScanResults results)
 {
     // DEBUGCLIENT("Scan Ended");
 }
+#endif
 
 END_BLEMIDI_NAMESPACE
 

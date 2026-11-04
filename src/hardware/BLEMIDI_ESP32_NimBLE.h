@@ -3,6 +3,10 @@
 // Headers for ESP32 NimBLE
 #include <NimBLEDevice.h>
 
+#if defined(NIMBLE_CPP_VERSION_MAJOR) && NIMBLE_CPP_VERSION_MAJOR >= 2
+#define NIMBLE_2_X 1
+#endif
+
 BEGIN_BLEMIDI_NAMESPACE
 
 template <class _Settings>
@@ -82,13 +86,21 @@ public:
 protected:
     BLEMIDI_ESP32_NimBLE<_Settings> *_bluetoothEsp32 = nullptr;
 
+#ifdef NIMBLE_2_X
+    void onConnect(BLEServer *, NimBLEConnInfo& connInfo) override
+#else
     void onConnect(BLEServer *)
+#endif
     {
         if (_bluetoothEsp32)
             _bluetoothEsp32->connected();
     };
 
+#ifdef NIMBLE_2_X
+    void onDisconnect(BLEServer *, NimBLEConnInfo& connInfo, int reason) override
+#else
     void onDisconnect(BLEServer *)
+#endif
     {
         if (_bluetoothEsp32)
             _bluetoothEsp32->disconnected();
@@ -107,6 +119,16 @@ public:
 protected:
     BLEMIDI_ESP32_NimBLE<_Settings> *_bluetoothEsp32 = nullptr;
 
+#ifdef NIMBLE_2_X
+    uint8_t onWrite(BLECharacteristic *characteristic, NimBLEAttValue& value, NimBLEConnInfo& connInfo) override
+    {
+        if (value.size() > 0)
+        {
+            _bluetoothEsp32->receive((uint8_t *)value.data(), value.size());
+        }
+        return 0; // success
+    }
+#else
     void onWrite(BLECharacteristic *characteristic)
     {
         std::string rxValue = characteristic->getValue();
@@ -115,6 +137,7 @@ protected:
             _bluetoothEsp32->receive((uint8_t *)(rxValue.c_str()), rxValue.length());
         }
     }
+#endif
 };
 
 template <class _Settings>
