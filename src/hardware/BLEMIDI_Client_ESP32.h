@@ -312,6 +312,14 @@ public:
 protected:
     BLEMIDI_Client_ESP32<_Settings> *_bluetoothEsp32 = nullptr;
 
+#ifdef NIMBLE_2_X
+    void onPassKeyEntry(NimBLEConnInfo& connInfo) override
+    {
+        NimBLEDevice::injectPassKey(connInfo, _Settings::userOnPassKeyRequest());
+    }
+
+    void onConnect(BLEClient *pClient) override
+#else
     uint32_t onPassKeyRequest()
     {
         // if (nullptr != _Settings::userOnPassKeyRequest)
@@ -320,6 +328,7 @@ protected:
     };
 
     void onConnect(BLEClient *pClient)
+#endif
     {
         DEBUGCLIENT("##Connected##");
         // pClient->updateConnParams(_Settings::commMinInterval, _Settings::commMaxInterval, _Settings::commLatency, _Settings::commTimeOut);
@@ -328,7 +337,11 @@ protected:
             _bluetoothEsp32->connected();
     };
 
+#ifdef NIMBLE_2_X
+    void onDisconnect(BLEClient *pClient, int reason) override
+#else
     void onDisconnect(BLEClient *pClient)
+#endif
     {
         DEBUGCLIENT(pClient->getPeerAddress().toString().c_str());
         DEBUGCLIENT(" Disconnected - Starting scan");
@@ -416,7 +429,11 @@ bool BLEMIDI_Client_ESP32<_Settings>::begin(const char *deviceName, BLEMIDI_Tran
     NimBLEDevice::setSecurityAuth(_Settings::clientBond, _Settings::clientMITM, _Settings::clientPair);
 
     /** Optional: set the transmit power, default is 3db */
+#ifdef NIMBLE_2_X
+    NimBLEDevice::setPower((_Settings::clientTXPwr - ESP_PWR_LVL_N0) * 3); /** Convert back to dBm */
+#else
     NimBLEDevice::setPower(_Settings::clientTXPwr); /** +9db */
+#endif
 
     myAdvCB.enableConnection = true;
     scan();

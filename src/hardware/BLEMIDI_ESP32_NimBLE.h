@@ -194,6 +194,10 @@ bool BLEMIDI_ESP32_NimBLE<_Settings>::begin(const char *deviceName, BLEMIDI_Tran
 
     // Start advertising
     _advertising = _server->getAdvertising();
+#ifdef NIMBLE_2_X
+    _advertising->setName(deviceName);
+    _advertising->enableScanResponse(true);
+#endif
     _advertising->addServiceUUID(service->getUUID());
     _advertising->setAppearance(0x00);
     _advertising->start();
